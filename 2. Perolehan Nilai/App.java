@@ -1,3 +1,4 @@
+import java.util.Locale;
 import java.util.Scanner;
 
 public class App {
@@ -5,11 +6,11 @@ public class App {
     public static void main(String[] args) {
         Scanner sc = new Scanner(System.in);
 
-        // Input 6 bobot utama
+        // ===== Baris 1-6: Bobot komponen =====
         int bobotPA = Integer.parseInt(sc.nextLine().trim());
-        int bobotT = Integer.parseInt(sc.nextLine().trim());
-        int bobotK = Integer.parseInt(sc.nextLine().trim());
-        int bobotP = Integer.parseInt(sc.nextLine().trim());
+        int bobotT  = Integer.parseInt(sc.nextLine().trim());
+        int bobotK  = Integer.parseInt(sc.nextLine().trim());
+        int bobotP  = Integer.parseInt(sc.nextLine().trim());
         int bobotUTS = Integer.parseInt(sc.nextLine().trim());
         int bobotUAS = Integer.parseInt(sc.nextLine().trim());
 
@@ -19,67 +20,68 @@ public class App {
             return;
         }
 
-        int totalPA = 0, totalT = 0, totalK = 0, totalP = 0, totalUTS = 0, totalUAS = 0;
-        int perolehanPA = 0, perolehanT = 0, perolehanK = 0, perolehanP = 0, perolehanUTS = 0, perolehanUAS = 0;
+        // ===== Akumulator per komponen =====
+        int totalBobotPA = 0, totalNilaiPA = 0;
+        int totalBobotT  = 0, totalNilaiT  = 0;
+        int totalBobotK  = 0, totalNilaiK  = 0;
+        int totalBobotP  = 0, totalNilaiP  = 0;
+        int totalBobotUTS = 0, totalNilaiUTS = 0;
+        int totalBobotUAS = 0, totalNilaiUAS = 0;
 
+        // ===== Baris 7 dst: Data komponen, sampai '---' atau input habis =====
         while (sc.hasNextLine()) {
-            String baris = sc.nextLine();
-            if (baris.trim().equals("---")) {
+            String line = sc.nextLine();
+            if (line.trim().equals("---")) {
                 break;
             }
 
-            String[] bagian = baris.split("\\|");
-            if (bagian.length != 3) {
+            String[] parts = line.split("\\|", -1);
+            if (parts.length != 3) {
                 System.out.println("Data tidak valid. Silahkan menggunakan format: Simbol|Bobot|Perolehan-Nilai");
                 continue;
             }
 
-            String simbol = bagian[0].trim();
-            String bobotStr = bagian[1].trim();
-            String perolehanStr = bagian[2].trim();
+            String simbol = parts[0].trim();
+            String bobotStr = parts[1].trim();
+            String nilaiStr = parts[2].trim();
 
-            int bobot;
-            int perolehan;
+            int bobot, nilai;
             try {
                 bobot = Integer.parseInt(bobotStr);
-                perolehan = Integer.parseInt(perolehanStr);
+                nilai = Integer.parseInt(nilaiStr);
             } catch (NumberFormatException e) {
                 System.out.println("Data tidak valid. Silahkan menggunakan format: Simbol|Bobot|Perolehan-Nilai");
                 continue;
             }
 
-            // Validasi perolehan nilai
-            if (perolehan > bobot) {
-                perolehan = bobot;
-            }
-            if (perolehan < 0) {
-                perolehan = 0;
-            }
+            // Clamp perolehan ke rentang [0, bobot]
+            if (nilai > bobot) nilai = bobot;
+            if (nilai < 0) nilai = 0;
 
             switch (simbol) {
                 case "PA":
-                    totalPA += bobot;
-                    perolehanPA += perolehan;
+                    totalBobotPA += bobot;
+                    totalNilaiPA += nilai;
                     break;
                 case "T":
-                    totalT += bobot;
-                    perolehanT += perolehan;
+                    totalBobotT += bobot;
+                    totalNilaiT += nilai;
                     break;
                 case "K":
-                    totalK += bobot;
-                    perolehanK += perolehan;
+                    totalBobotK += bobot;
+                    totalNilaiK += nilai;
                     break;
                 case "P":
-                    totalP += bobot;
-                    perolehanP += perolehan;
+                    totalBobotP += bobot;
+                    totalNilaiP += nilai;
                     break;
                 case "UTS":
-                    totalUTS += bobot;
-                    perolehanUTS += perolehan;
+                    totalBobotUTS += bobot;
+                    totalNilaiUTS += nilai;
                     break;
                 case "UAS":
-                    totalUAS += bobot;
-                    perolehanUAS += perolehan;
+                    totalBobotUAS += bobot;
+                    totalNilaiUAS += nilai;
                     break;
                 default:
                     System.out.println("Simbol tidak dikenal");
@@ -87,49 +89,58 @@ public class App {
             }
         }
 
-        double kontribusiPA = kontribusi(perolehanPA, totalPA, bobotPA);
-        double kontribusiT = kontribusi(perolehanT, totalT, bobotT);
-        double kontribusiK = kontribusi(perolehanK, totalK, bobotK);
-        double kontribusiP = kontribusi(perolehanP, totalP, bobotP);
-        double kontribusiUTS = kontribusi(perolehanUTS, totalUTS, bobotUTS);
-        double kontribusiUAS = kontribusi(perolehanUAS, totalUAS, bobotUAS);
+        // ===== Hitung persentase & kontribusi tiap komponen =====
+        int persenPA = hitungPersen(totalNilaiPA, totalBobotPA);
+        int persenT  = hitungPersen(totalNilaiT, totalBobotT);
+        int persenK  = hitungPersen(totalNilaiK, totalBobotK);
+        int persenP  = hitungPersen(totalNilaiP, totalBobotP);
+        int persenUTS = hitungPersen(totalNilaiUTS, totalBobotUTS);
+        int persenUAS = hitungPersen(totalNilaiUAS, totalBobotUAS);
 
-        double nilaiAkhir = kontribusiPA + kontribusiT + kontribusiK + kontribusiP + kontribusiUTS + kontribusiUAS;
+        // Catatan: urutan (persen * bobot) / 100.0 dipakai (bukan persen/100.0*bobot)
+        // untuk menghindari galat pembulatan floating-point (mis. 57.0 bisa jadi
+        // 56.999999999999 jika dibagi dulu sebelum dikali), yang bisa menggeser Grade.
+        double kontribusiPA  = (persenPA  * (double) bobotPA)  / 100.0;
+        double kontribusiT   = (persenT   * (double) bobotT)   / 100.0;
+        double kontribusiK   = (persenK   * (double) bobotK)   / 100.0;
+        double kontribusiP   = (persenP   * (double) bobotP)   / 100.0;
+        double kontribusiUTS = (persenUTS * (double) bobotUTS) / 100.0;
+        double kontribusiUAS = (persenUAS * (double) bobotUAS) / 100.0;
 
+        double nilaiAkhir = kontribusiPA + kontribusiT + kontribusiK
+                + kontribusiP + kontribusiUTS + kontribusiUAS;
+
+        // ===== Output =====
         System.out.println("Perolehan Nilai:");
-        System.out.printf(">> Partisipatif: %d/100 (%.2f/%d)%n", persen(perolehanPA, totalPA), kontribusiPA, bobotPA);
-        System.out.printf(">> Tugas: %d/100 (%.2f/%d)%n", persen(perolehanT, totalT), kontribusiT, bobotT);
-        System.out.printf(">> Kuis: %d/100 (%.2f/%d)%n", persen(perolehanK, totalK), kontribusiK, bobotK);
-        System.out.printf(">> Proyek: %d/100 (%.2f/%d)%n", persen(perolehanP, totalP), kontribusiP, bobotP);
-        System.out.printf(">> UTS: %d/100 (%.2f/%d)%n", persen(perolehanUTS, totalUTS), kontribusiUTS, bobotUTS);
-        System.out.printf(">> UAS: %d/100 (%.2f/%d)%n", persen(perolehanUAS, totalUAS), kontribusiUAS, bobotUAS);
+        cetakBaris("Partisipatif", persenPA, kontribusiPA, bobotPA);
+        cetakBaris("Tugas", persenT, kontribusiT, bobotT);
+        cetakBaris("Kuis", persenK, kontribusiK, bobotK);
+        cetakBaris("Proyek", persenP, kontribusiP, bobotP);
+        cetakBaris("UTS", persenUTS, kontribusiUTS, bobotUTS);
+        cetakBaris("UAS", persenUAS, kontribusiUAS, bobotUAS);
+
         System.out.println();
-        System.out.printf(">> Nilai Akhir: %.2f%n", nilaiAkhir);
-        System.out.println(">> Grade: " + grade(nilaiAkhir));
-
-        sc.close();
+        System.out.printf(Locale.US, ">> Nilai Akhir: %.2f%n", nilaiAkhir);
+        System.out.println(">> Grade: " + hitungGrade(nilaiAkhir));
     }
 
-    // Menggunakan Math.round agar pembulatan persen ke integer lebih akurat
-    static int persen(int perolehan, int total) {
-        if (total == 0) return 0;
-        return (int) Math.round((perolehan * 100.0) / total);
+    // Integer division (truncate), aman karena nilai & totalBobot selalu >= 0
+    private static int hitungPersen(int nilai, int totalBobot) {
+        if (totalBobot == 0) return 0;
+        return (nilai * 100) / totalBobot;
     }
 
-    // Menggunakan nilai presisi double untuk kalkulasi kontribusi
-    static double kontribusi(int perolehan, int total, int bobot) {
-        if (total == 0) return 0.0;
-        double persenDesimal = (double) perolehan / total;
-        return persenDesimal * bobot;
+    private static void cetakBaris(String nama, int persen, double kontribusi, int bobot) {
+        System.out.printf(Locale.US, ">> %s: %d/100 (%.2f/%d)%n", nama, persen, kontribusi, bobot);
     }
 
-    static String grade(double nilai) {
-        if (nilai >= 79.5) return "A";
-        if (nilai >= 72.0) return "AB";
-        if (nilai >= 64.5) return "B";
-        if (nilai >= 57.0) return "BC";
-        if (nilai >= 49.5) return "C";
-        if (nilai >= 34.0) return "D";
+    private static String hitungGrade(double nilaiAkhir) {
+        if (nilaiAkhir >= 79.5) return "A";
+        if (nilaiAkhir >= 72)   return "AB";
+        if (nilaiAkhir >= 64.5) return "B";
+        if (nilaiAkhir >= 57)   return "BC";
+        if (nilaiAkhir >= 49.5) return "C";
+        if (nilaiAkhir >= 34)   return "D";
         return "E";
     }
 }
